@@ -1,0 +1,14 @@
+server {
+    listen ${FRONTEND_PORT};
+    root /var/www/html/html;
+
+    index index.php;
+
+    charset utf-8;
+
+    location ~ \.php$ {
+        fastcgi_pass ${BACKEND_HOST}:9000;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+}

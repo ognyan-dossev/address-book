@@ -1,0 +1,49 @@
+
+build_images:
+  script:
+    - docker build -f docker/PHP-FPM.Dockerfile -t ognyandossev/demo-app:backend-$CI_JOB_ID -t ognyandossev/demo-app:backend-latest .
+    - docker build -f frontend/Frontend.Dockerfile -t ognyandossev/demo-app:frontend-$CI_JOB_ID -t ognyandossev/demo-app:frontend-latest .
+    - docker build -f sql/Database.Dockerfile -t ognyandossev/demo-app:database-$CI_JOB_ID -t ognyandossev/demo-app:database-latest .
+    - echo "BACKEND_IMAGE=ognyandossev/demo-app:backend-$CI_JOB_ID">>build.env
+    - echo "FRONTEND_IMAGE=ognyandossev/demo-app:frontend-$CI_JOB_ID">>build.env
+    - echo "DATABASE_IMAGE=ognyandossev/demo-app:database-$CI_JOB_ID">>build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+
+tests:
+  needs:
+  - build_images
+  before_script:
+  - docker compose -f ./docker-compose-latest.yml down
+  - docker volume rm address-book_address-book-db || true
+  - docker compose -f ./docker-compose-latest.yml up -d
+  # expecting the following containers:
+  # address-book-frontend-1 - exposed port 80 to 8080
+  # address-book-backend-1
+  # address-book-database-1
+  - sleep 30 # ToDo: should be reworked to wait for 3306 on the database container
+  script:
+  - echo "Testing database:"
+  - docker exec address-book-database-1 mysql -u root --password=SUPERSECRETPASSWORD address_book -e 'show databases;' | grep address_book
+  - docker exec address-book-database-1 mysql -u root --password=SUPERSECRETPASSWORD address_book -e 'show tables;' | grep api
+  - docker exec address-book-database-1 mysql -u root --password=SUPERSECRETPASSWORD address_book -e 'show tables;' | grep contacts
+  - docker exec address-book-database-1 mysql -u root --password=SUPERSECRETPASSWORD address_book -e 'show tables;' | grep logs
+  - docker exec address-book-database-1 mysql -u root --password=SUPERSECRETPASSWORD address_book -e 'show tables;' | grep users
+  - echo "Testing frontend:"
+  - docker exec address-book-frontend-1 curl -s -L --connect-timeout 60 http://localhost:80 | grep "<title>Log In</title>"
+
+push:
+  needs:
+  - tests
+  - build_images
+  before_script:
+    - docker login -u $REGISTRY_USER -p $REGISTRY_PASS
+  script:
+  - echo "Images to push:"
+  - echo ${BACKEND_IMAGE}
+  - echo ${FRONTEND_IMAGE}
+  - echo ${DATABASE_IMAGE}
+  - docker push ${BACKEND_IMAGE}
+  - docker push ${FRONTEND_IMAGE}
+  - docker push ${DATABASE_IMAGE}

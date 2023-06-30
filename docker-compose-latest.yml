@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+    frontend:
+        image: ognyandossev/demo-app:frontend-latest
+        ports:
+            - ${EXPOSE_PORT:-8080}:${FRONTEND_PORT:-80}
+        depends_on:
+            - backend
+            - database
+        environment:
+            - BACKEND_HOST=backend
+            - FRONTEND_PORT=${FRONTEND_PORT:-80}
+    backend:
+        image: ognyandossev/demo-app:backend-latest
+        environment:
+            - DB_SERVER=${DB_SERVER:-database}
+            - DB_USER=${DB_USER:-root}
+            - DB_PASS=${DB_PASS:-SUPERSECRETPASSWORD}
+            - DB_NAME=address_book # hardcoded from the developer
+            - SITE_URL="${SITE_URL:-http://localhost}:${EXPOSE_PORT:-8080}/"
+        depends_on:
+            - database
+    database:
+        image: ognyandossev/demo-app:database-latest
+        volumes:
+            - 'address-book-db:/var/lib/mysql'
+        environment:
+            - MYSQL_ROOT_PASSWORD=${DB_PASS:-SUPERSECRETPASSWORD}
+
+volumes:
+    address-book-db:
+        driver: local

@@ -17,13 +17,20 @@ services:
             dockerfile: PHP-FPM.Dockerfile
         volumes: 
             - ./:/var/www/html
+        environment:
+            - DB_SERVER=${DB_SERVER:-database}
+            - DB_USER=${DB_USER:-root}
+            - DB_PASS=${DB_PASS:-SUPERSECRETPASSWORD}
+            - DB_NAME=address_book # hardcoded from the developer
+            - SITE_URL=${SITE_URL:-http://localhost/}
     mysql:
         image: mysql:8
         volumes:
             - 'address-book-db:/var/lib/mysql'
             - ./sql/sql.sql:/docker-entrypoint-initdb.d/initialise.sql
         environment:
-            - MYSQL_RANDOM_ROOT_PASSWORD=yes
+            - MYSQL_ROOT_PASSWORD=${DB_PASS:-SUPERSECRETPASSWORD}
+            # - MYSQL_RANDOM_ROOT_PASSWORD=yes
 
 volumes:
     address-book-db:

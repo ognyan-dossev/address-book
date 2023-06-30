@@ -1,6 +1,5 @@
 MIT License
 
-
 Copyright (c) 2017 Alex Winder
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
